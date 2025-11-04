@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Selamat Ulang Tahun!</title>
+    <!-- Memuat Tailwind CSS --><script src="https://cdn.tailwindcss.com"></script>
+    <!-- Memuat Google Fonts (Inter sebagai sans-serif dan Dancing Script untuk judul) --><link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        /* CSS Kustom */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .font-script {
+            font-family: 'Dancing Script', cursive;
+        }
+
+        /* Canvas untuk confetti */
+        #confetti-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* Animasi untuk memudarkan (fade out) overlay */
+        .fade-out {
+            animation: fadeOut 0.5s ease-out forwards;
+        }
+        @keyframes fadeOut {
+            to {
+                opacity: 0;
+            }
+        }
+
+        /* Animasi untuk popup (zoom in/muncul) */
+        .popup-in {
+            animation: popupIn 0.8s ease-out forwards;
+        }
+        @keyframes popupIn {
+            from {
+                opacity: 0;
+                transform: scale(0.7);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        /* Animasi untuk popup (zoom out/hilang) */
+        .popup-out {
+            animation: popupOut 0.4s ease-in forwards;
+        }
+        @keyframes popupOut {
+            from {
+                opacity: 1;
+                transform: scale(1);
+            }
+            to {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+        }
+
+        /* Animasi api lilin berkedip */
+        @keyframes flicker {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        /* Animasi api "goyangan" */
+        @keyframes flameSway {
+            0%, 100% { transform: scale(1) translateY(0px); }
+            25% { transform: scale(0.98, 1.02) translateY(-0.5px); }
+            50% { transform: scale(1.02, 0.98) translateY(0.5px); }
+            75% { transform: scale(0.98, 1.02) translateY(-0.5px); }
+        }
+
+        /* BARU: Tambahkan Keyframe untuk asap naik */
+@keyframes smokeRise {
+    /* Asap muncul dan mulai naik */
+    0% {
+        opacity: 0;
+        transform: translateY(0);
+        stroke-width: 2;
+    }
+    /* Naik dan terlihat jelas */
+    50% {
+        opacity: 0.7;
+    }
+    /* Naik lebih tinggi, menipis, dan menghilang */
+    100% {
+        opacity: 0;
+        transform: translateY(-40px); /* Naik 40px */
+        stroke-width: 0.5; /* Asapnya menipis */
+    }
+}
+
+/* BARU: Class untuk memicu animasi */
+.animate-smoke {
+    /* Terapkan animasi 'smokeRise' selama 2.5 detik */
+    animation: smokeRise 2.5s ease-out forwards;
+}
+        
+        .animate-flame {
+            animation: flicker 1.5s infinite alternate, 
+                       flameSway 2s infinite alternate;
+            transform-origin: 50% 100%;
+        }
+
+        .text-shadow {
+            text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Animasi Balon Terbang (DIUBAH: Durasi lebih cepat) */
+        #balloon-container {
+            position: fixed;
+            inset: 0;
+            z-index: 20;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .balloon {
+            position: absolute;
+            bottom: -200px;
+            width: 70px;
+            height: 90px;
+            background-color: var(--color-balloon);
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            opacity: 0.9;
+            animation: riseUp 5s ease-in forwards; /* Durasi lebih cepat */
+        }
+
+        /* Tali balon, opacity akan berkurang saat naik */
+        .balloon::after {
+            content: '';
+            position: absolute;
+            bottom: -100px; /* Posisi relatif ke balon */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 2px;
+            height: 100px; /* Panjang tali */
+            background-color: #fff5;
+            animation: fadeOutString 5s ease-in forwards; /* Durasi sama dengan balon */
+        }
+
+        @keyframes riseUp {
+            0% {
+                bottom: -200px;
+                transform: translateX(0) rotate(0deg);
+                opacity: 0.9;
+            }
+            100% {
+                bottom: 110vh;
+                transform: translateX(var(--sway-x)) rotate(var(--sway-rotate));
+                opacity: 0; 
+            }
+        }
+
+        /* Keyframes untuk tali balon menghilang */
+        @keyframes fadeOutString {
+            0% { opacity: 1; }
+            50% { opacity: 1; } 
+            100% { opacity: 0; } 
+        }
+
+        /* Animasi Goyangan untuk Kado */
+        @keyframes giftSway {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            25% { transform: translateY(-5px) rotate(-1deg); }
+            50% { transform: translateY(0) rotate(0deg); }
+            75% { transform: translateY(5px) rotate(1deg); }
+        }
+        
+        .animate-gift-sway {
+            animation: giftSway 3s ease-in-out infinite;
+        }
+
+    </style>
+</head>
+<body class="bg-gray-100 overflow-hidden">
+
+    <!-- 1. Layar Gelap Awal (Overlay) --><div id="initial-overlay" class="fixed inset-0 bg-black z-50 flex flex-col items-center justify-center transition-opacity duration-500">
+        <h2 class="text-2xl text-white font-light mb-4">Ada sesuatu untukmu...</h2>
+        <button id="startButton" class="px-8 py-3 font-bold text-black transition-all duration-300 transform bg-white rounded-full shadow-lg hover:bg-gray-200 hover:scale-105 active:scale-95">
+            Buka Hadiahnya!
+        </button>
+    </div>
+
+    <!-- 2. Konten Utama (Background Menarik) --><div class="relative flex items-center justify-center w-screen h-screen overflow-hidden bg-gradient-to-br from-pink-300 via-purple-300 to-indigo-400">
+
+        <!-- Canvas untuk Confetti --><canvas id="confetti-canvas"></canvas>
+
+        <!-- BARU: Penampung Balon (Lebih Banyak) --><div id="balloon-container" class="hidden">
+            <!-- Balon 1 --><div class="balloon" style="--color-balloon: #f472b6; left: 5%; animation-delay: 0s; --sway-x: 50px; --sway-rotate: 15deg;"></div>
+            <!-- Balon 2 --><div class="balloon" style="--color-balloon: #ec4899; left: 15%; animation-delay: 1.5s; --sway-x: -30px; --sway-rotate: -10deg;"></div>
+            <!-- Balon 3 --><div class="balloon" style="--color-balloon: #fbcfe8; left: 25%; animation-delay: 0.5s; --sway-x: 20px; --sway-rotate: 10deg;"></div>
+            <!-- Balon 4 --><div class="balloon" style="--color-balloon: #ef4444; left: 35%; animation-delay: 2s; --sway-x: -40px; --sway-rotate: -15deg;"></div>
+            <!-- Balon 5 --><div class="balloon" style="--color-balloon: #a78bfa; left: 45%; animation-delay: 0.3s; --sway-x: 60px; --sway-rotate: 5deg;"></div>
+            <!-- Balon 6 --><div class="balloon" style="--color-balloon: #fcd34d; left: 55%; animation-delay: 1.8s; --sway-x: -25px; --sway-rotate: -8deg;"></div>
+            <!-- Balon 7 --><div class="balloon" style="--color-balloon: #f472b6; left: 65%; animation-delay: 0.8s; --sway-x: 35px; --sway-rotate: 12deg;"></div>
+            <!-- Balon 8 --><div class="balloon" style="--color-balloon: #ec4899; left: 75%; animation-delay: 2.2s; --sway-x: -50px; --sway-rotate: -18deg;"></div>
+            <!-- Balon 9 --><div class="balloon" style="--color-balloon: #fbcfe8; left: 85%; animation-delay: 1s; --sway-x: 40px; --sway-rotate: 7deg;"></div>
+            <!-- Balon 10 --><div class="balloon" style="--color-balloon: #ef4444; left: 95%; animation-delay: 2.5s; --sway-x: -35px; --sway-rotate: -13deg;"></div>
+        </div>
+
+        <!-- 3. Teks Ucapan & Kado (Muncul Terakhir) --><div id="greeting-container" class="relative z-30 flex flex-col items-center justify-center w-full h-screen text-center text-white space-y-8 px-4 hidden">
+            
+            <!-- Teks Ucapan (Di Tengah Vertikal) --><p id="greeting-text-line" class="text-5xl md:text-6xl font-script text-shadow min-h-[60px] md:min-h-[70px]"></p>
+            
+            <!-- DUA SVG Kado (Di Bawah, Goyangan, Jarak Sangat Dekat) --><div id="gift-box-container" class="absolute bottom-10 left-1/2 -translate-x-1/2 flex space-x-1 hidden">
+                <!-- Kado 1 (Merah-Putih-Pink) --><svg id="gift-box-1" class="w-24 h-24 md:w-28 md:h-28 animate-gift-sway" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M50 30 C 40 10, 20 20, 30 35 C 35 45, 45 45, 50 30 Z" fill="#ec4899"/>
+                    <path d="M50 30 C 60 10, 80 20, 70 35 C 65 45, 55 45, 50 30 Z" fill="#f472b6"/>
+                    <rect x="20" y="35" width="60" height="15" fill="#ffffff" rx="2"/>
+                    <rect x="45" y="35" width="10" height="60" fill="#f472b6"/>
+                    <rect x="25" y="50" width="50" height="45" fill="#ef4444" rx="2"/>
+                    <rect x="25" y="60" width="50" height="10" fill="#f472b6"/>
+                </svg>
+                <!-- Kado 2 (Soft Blue-White-Gold) --><svg id="gift-box-2" class="w-24 h-24 md:w-28 md:h-28 animate-gift-sway" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="animation-delay: 1s;">
+                    <path d="M50 30 C 40 10, 20 20, 30 35 C 35 45, 45 45, 50 30 Z" fill="#d97706"/>
+                    <path d="M50 30 C 60 10, 80 20, 70 35 C 65 45, 55 45, 50 30 Z" fill="#fbbf24"/>
+                    <rect x="20" y="35" width="60" height="15" fill="#ffffff" rx="2"/>
+                    <rect x="45" y="35" width="10" height="60" fill="#fbbf24"/>
+                    <rect x="25" y="50" width="50" height="45" fill="#60a5fa" rx="2"/>
+                    <rect x="25" y="60" width="50" height="10" fill="#fbbf24"/>
+                </svg>
+            </div>
+
+        </div>
+        
+    </div>
+
+    <!-- 3. Popup Kue (Hidden Awalnya) --><div id="cake-popup" class="fixed inset-0 z-40 flex items-center justify-center hidden">
+        <!-- Backdrop --><div class="absolute inset-0 bg-black/50"></div>
+        
+        <!-- Konten Popup --><div id="cake-content" class="relative z-40 w-11/12 max-w-sm text-center popup-in">
+            
+            <!-- SVG Kue dan Lilin (Lilin Kecil, Stroberi Presisi, Meses Garis) --><div class="w-full max-w-xs mx-auto mb-4">
+                <svg viewBox="0 0 200 250" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Api Lilin (Digeser 1px ke kiri) --><path id="candle-flame" class="animate-flame" d="M98 70 C96 60, 106 60, 104 70 C106 80, 96 80, 98 70Z" fill="url(#flameGradient)"/>
+                    <!-- Sumbu --><rect x="100" y="80" width="2" height="10" fill="#333"/>
+                    <!-- Asap (Digeser 1px ke kanan agar di tengah sumbu)<path id="smoke-puff"
+      d="M100 75 Q97 68, 103 63 Q109 68, 106 75"
+      fill="#a0a0a0"
+      opacity="0"
+      style="transition: opacity 0.5s, transform 2s ease-out;"></path> -->
+      <path id="smoke-puff" 
+    d="M101 80 q -2 -10 0 -20 q 2 -10 0 -20 q -1 -10 0 -20" 
+    fill="none" 
+    stroke="#b0b0b0" 
+    stroke-width="2" 
+    stroke-linecap="round" 
+    opacity="0"
+/>
+                    <!-- Lilin Batang (KECIL & MENEMPEL) --><rect x="98" y="90" width="6" height="20" fill="#fde047" rx="1"/>
+                    
+                    <!-- Kue Lapis 1 (Atas - Putih) --><rect x="70" y="110" width="60" height="20" fill="#ffffff" rx="5"/>
+                    <!-- Kue Lapis 2 (Soft Pink) --><rect x="60" y="130" width="80" height="30" fill="#fbcfe8" rx="5"/>
+                    <!-- Kue Lapis 3 (Putih) --><rect x="50" y="160" width="100" height="25" fill="#ffffff" rx="5"/>
+                    <!-- Kue Lapis 4 (Soft Pink) --><rect x="40" y="185" width="120" height="40" fill="#fbcfe8" rx="5"/>
+                    
+                    <!-- Lelehan Coklat (Drip) --><path d="M 70 115 
+                             C 75 125, 80 125, 85 115
+                             C 90 128, 95 128, 100 115
+                             C 105 125, 110 125, 115 115
+                             C 120 128, 125 128, 130 115
+                             L 130 110 L 70 110 Z" fill="#4a2c2a"/>
+                    
+                    <!-- BARU: Hiasan Meses (Sprinkles - Garis Kecil & Lebih Ramai) --><g>
+                        <rect x="75" y="113" width="1.5" height="4" fill="#ef4444" transform="rotate(20 75 113)"/>
+                        <rect x="83" y="111" width="1.5" height="4" fill="#60a5fa" transform="rotate(-10 83 111)"/>
+                        <rect x="91" y="114" width="1.5" height="4" fill="#fcd34d" transform="rotate(30 91 114)"/>
+                        <rect x="99" y="112" width="1.5" height="4" fill="#fbcfe8" transform="rotate(-5 99 112)"/>
+                        <rect x="107" y="115" width="1.5" height="4" fill="#22c55e" transform="rotate(15 107 115)"/>
+                        <rect x="115" y="113" width="1.5" height="4" fill="#a78bfa" transform="rotate(25 115 113)"/>
+
+                        <rect x="78" y="120" width="1.5" height="4" fill="#fcd34d" transform="rotate(-20 78 120)"/>
+                        <rect x="88" y="118" width="1.5" height="4" fill="#ef4444" transform="rotate(10 88 118)"/>
+                        <rect x="100" y="121" width="1.5" height="4" fill="#a78bfa" transform="rotate(-15 100 121)"/>
+                        <rect x="112" y="119" width="1.5" height="4" fill="#60a5fa" transform="rotate(20 112 119)"/>
+                    </g>
+
+                    <!-- Hiasan Stroberi (4 buah, presisi di tengah bawah) --><g transform="translate(55 175) scale(0.2)">
+                        <path d="M15 10 C 5 5, 0 15, 0 25 C 0 35, 5 45, 15 40 C 25 45, 30 35, 30 25 C 30 15, 25 5, 15 10 Z" fill="#ef4444"/>
+                        <circle cx="10" cy="20" r="1.5" fill="#fbcfe8"/>
+                        <circle cx="20" cy="25" r="1.5" fill="#fbcfe8"/>
+                        <circle cx="15" cy="30" r="1.5" fill="#fbcfe8"/>
+                        <path d="M10 5 L15 0 L20 5 Z" fill="#22c55e"/>
+                    </g>
+                    <g transform="translate(80 175) scale(0.2)">
+                        <path d="M15 10 C 5 5, 0 15, 0 25 C 0 35, 5 45, 15 40 C 25 45, 30 35, 30 25 C 30 15, 25 5, 15 10 Z" fill="#ef4444"/>
+                        <circle cx="10" cy="20" r="1.5" fill="#fbcfe8"/>
+                        <circle cx="20" cy="25" r="1.5" fill="#fbcfe8"/>
+                        <circle cx="15" cy="30" r="1.5" fill="#fbcfe8"/>
+                        <path d="M10 5 L15 0 L20 5 Z" fill="#22c55e"/>
+                    </g>
+                    <g transform="translate(105 175) scale(0.2)">
+                        <path d="M15 10 C 5 5, 0 15, 0 25 C 0 35, 5 45, 15 40 C 25 45, 30 35, 30 25 C 30 15, 25 5, 15 10 Z" fill="#ef4444"/>
+                        <circle cx="10" cy="20" r="1.5" fill="#fbcfe8"/>
+                        <circle cx="20" cy="25" r="1.5" fill="#fbcfe8"/>
+                        <circle cx="15" cy="30" r="1.5" fill="#fbcfe8"/>
+                        <path d="M10 5 L15 0 L20 5 Z" fill="#22c55e"/>
+                    </g>
+                    <g transform="translate(130 175) scale(0.2)">
+                        <path d="M15 10 C 5 5, 0 15, 0 25 C 0 35, 5 45, 15 40 C 25 45, 30 35, 30 25 C 30 15, 25 5, 15 10 Z" fill="#ef4444"/>
+                        <circle cx="10" cy="20" r="1.5" fill="#fbcfe8"/>
+                        <circle cx="20" cy="25" r="1.5" fill="#fbcfe8"/>
+                        <circle cx="15" cy="30" r="1.5" fill="#fbcfe8"/>
+                        <path d="M10 5 L15 0 L20 5 Z" fill="#22c55e"/>
+                    </g>
+                    
+                    <!-- Piring --><rect x="30" y="225" width="140" height="10" fill="#e5e7eb" rx="5"/>
+                    
+                    <defs>
+                        <radialGradient id="flameGradient">
+                            <stop offset="0%" stop-color="#FFD700" stop-opacity="1"/>
+                            <stop offset="70%" stop-color="#FF8C00" stop-opacity="1"/>
+                            <stop offset="100%" stop-color="#FF8C00" stop-opacity="0"/>
+                        </radialGradient>
+                    </defs>
+                </svg>
+            </div>
+
+            <p class="mb-6 text-lg text-white text-shadow">Make a wish and...</p>
+            
+            <button id="blowButton" class="w-full px-8 py-3 font-bold text-white transition-all duration-300 transform bg-purple-500 rounded-full shadow-lg hover:bg-purple-600 hover:scale-105 active:scale-95">
+                Tiup Lilin!
+            </button>
+        </div>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Bagian 1: Inisialisasi Elemen ---
+            const initialOverlay = document.getElementById('initial-overlay');
+            const startButton = document.getElementById('startButton');
+            const cakePopup = document.getElementById('cake-popup');
+            const blowButton = document.getElementById('blowButton');
+            const candleFlame = document.getElementById('candle-flame');
+            const greetingTextElement = document.getElementById('greeting-text-line');
+            const cakeContent = document.getElementById('cake-content');
+            const smokePuff = document.getElementById('smoke-puff');
+            const balloonContainer = document.getElementById('balloon-container');
+            const giftBoxContainer = document.getElementById('gift-box-container');
+            // DIHAPUS: const cakeSilhouetteBg = document.getElementById('cake-silhouette-bg');
+
+            const musicPath = 'hbd.mp3'; 
+                const backgroundMusic = new Audio(musicPath);
+                backgroundMusic.loop = true; // Agar musiknya berulang
+            
+            const greetingTexts = [
+                { text: "Selamat Ulang Tahun Neby", style: "script" },
+                { text: "Semoga panjang umur...", style: "sans" },
+                { text: "...dan sehat selalu.", style: "sans" },
+                { text: "Wish you all the best!", style: "sans" },
+                { text: "Semoga cita-citanya tercapai semua", style: "sans" },
+                { text: "Makin sukses dan menjadi kebanggaan orang tua", style: "sans" },
+                { text: "Bisa membahagiakan keluarga selalu", style: "sans" },
+                { text: "Aamiin untuk semua doanya", style: "sans" },
+                { text: "Semoga kita bisa sama-sama terus ya", style: "sans" },
+                { text: "Maafin kalo masih suka salah", style: "sans" },
+                { text: "Dan belum bisa jadi yang terbaik", style: "sans" },
+                { text: "Semoga suka ya dengan ini", style: "sans" },
+                { text: "From Abang <3", style: "script" }
+            ];
+
+            // --- Bagian 2: Logika Confetti ---
+            const canvas = document.getElementById('confetti-canvas');
+            const ctx = canvas.getContext('2d');
+            let canvasWidth = window.innerWidth;
+            let canvasHeight = window.innerHeight;
+            canvas.width = canvasWidth;
+            canvas.height = canvasHeight;
+            let particles = [];
+            const colors = ['#fbcfe8', '#ffffff', '#ef4444', '#fcd34d', '#f472b6', '#a78bfa']; 
+            
+            const gravity = 0.08;
+            let isBurstActive = false;
+
+            window.addEventListener('resize', () => {
+                canvasWidth = window.innerWidth;
+                canvasHeight = window.innerHeight;
+                canvas.width = canvasWidth;
+                canvas.height = canvasHeight;
+            });
+
+            class Particle {
+                constructor(x, y) {
+                    this.x = x;
+                    this.y = y;
+                    this.size = Math.random() * 7 + 3;
+                    this.angle = Math.random() * Math.PI * 2;
+                    this.speed = Math.random() * 4 + 2; 
+                    this.vx = Math.cos(this.angle) * this.speed;
+                    this.vy = Math.sin(this.angle) * this.speed - 3; 
+                    this.color = colors[Math.floor(Math.random() * colors.length)];
+                    this.opacity = 1;
+                    this.life = 150 + Math.random() * 50; 
+                }
+                update() {
+                    this.vy += gravity;
+                    this.vx *= 0.99; 
+                    this.x += this.vx;
+                    this.y += this.vy;
+                    this.life--;
+                    if (this.life < 30) this.opacity = this.life / 30;
+                }
+                draw() {
+                    ctx.save();
+                    ctx.globalAlpha = this.opacity;
+                    ctx.fillStyle = this.color;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+
+            function createBurst() {
+                if (isBurstActive) return;
+                isBurstActive = true;
+                const burstCenterX = canvasWidth / 2;
+                const burstCenterY = canvasHeight / 2;
+                for (let i = 0; i < 150; i++) {
+                    particles.push(new Particle(burstCenterX, burstCenterY));
+                }
+                setTimeout(() => { isBurstActive = false; }, 3000);
+            }
+
+            function animate() {
+                ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    const p = particles[i];
+                    p.update();
+                    p.draw();
+                    if (p.life <= 0 || p.y > canvasHeight + 20) {
+                        particles.splice(i, 1);
+                    }
+                }
+                requestAnimationFrame(animate);
+            }
+            animate(); 
+
+            // --- Bagian 3: Alur Interaksi ---
+
+            // 1. Klik Tombol "Buka Hadiahnya"
+            startButton.addEventListener('click', () => {
+
+            // BARU: Mulai mainkan musik
+    backgroundMusic.play().catch(e => {
+        // Ini untuk menangani jika browser memblokir audio,
+        // tapi seharusnya aman karena sudah di dalam event 'click'
+        console.error("Musik gagal diputar:", e);
+    });
+
+                initialOverlay.classList.add('fade-out');
+                setTimeout(() => {
+                    initialOverlay.style.display = 'none';
+                }, 500);
+                
+                setTimeout(() => {
+                    createBurst(); 
+                    cakePopup.classList.remove('hidden'); 
+                }, 300); 
+            });
+
+            // 2. Klik Tombol "Tiup Lilin"
+            blowButton.addEventListener('click', () => {
+                candleFlame.style.display = 'none';
+
+                // smokePuff.style.opacity = '1';
+                // smokePuff.style.transform = 'translateY(-20px)';
+
+                // GANTI DENGAN INI:
+    smokePuff.classList.add('animate-smoke'); // Memicu animasi CSS
+
+    
+    blowButton.disabled = true;
+    blowButton.innerText = "Wish granted!";
+                
+                blowButton.disabled = true;
+                blowButton.innerText = "Wish granted!";
+                blowButton.classList.remove('bg-purple-500', 'hover:bg-purple-600');
+                blowButton.classList.add('bg-gray-400', 'cursor-not-allowed');
+
+                setTimeout(() => {
+                    cakeContent.classList.add('popup-out');
+                }, 1000); 
+
+                setTimeout(() => {
+                    cakePopup.classList.add('hidden');
+                }, 1400);
+
+                // Tampilkan balon & kado container
+                setTimeout(() => {
+                    balloonContainer.classList.remove('hidden');
+                    giftBoxContainer.classList.remove('hidden');
+                }, 1450); 
+
+                // BARU: Teks ucapan muncul setelah balon menghilang (sesuai durasi animasi balon)
+                setTimeout(() => {
+                    document.getElementById('greeting-container').classList.remove('hidden'); // Tampilkan container ucapan
+                    showGreetingTexts(0);
+                }, 1450 + 5000); // Waktu mulai + durasi animasi balon (5 detik)
+            });
+
+            // 3. Fungsi EFEK KETIK
+            function typewriter(element, text, style, callback) {
+                if (style === 'script') {
+                    element.className = "text-5xl md:text-6xl font-script text-shadow min-h-[60px] md:min-h-[70px]";
+                } else {
+                    element.className = "text-2xl md:text-3xl font-sans text-shadow min-h-[60px] md:min-h-[70px]";
+                }
+                
+                element.textContent = ''; 
+                let charIndex = 0;
+                
+                function typeChar() {
+                    if (charIndex < text.length) {
+                        element.textContent += text.charAt(charIndex);
+                        charIndex++;
+                        setTimeout(typeChar, 70); 
+                    } else {
+                        if (callback) callback(); 
+                    }
+                }
+                typeChar(); 
+            }
+
+            // 4. Fungsi untuk menampilkan teks
+            function showGreetingTexts(index) {
+                if (index >= greetingTexts.length) {
+                    return; 
+                }
+                
+                const currentGreeting = greetingTexts[index];
+                
+                typewriter(greetingTextElement, currentGreeting.text, currentGreeting.style, () => {
+                    setTimeout(() => {
+                        showGreetingTexts(index + 1);
+                    }, 1500); 
+                });
+            }
+
+        });
+    </script>
+</body>
+</html>
+
+
+
